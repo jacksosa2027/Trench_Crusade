@@ -1,0 +1,27 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Play game",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "C:/Users/shrja/Desktop/Godot/Godot_v4.7.2-stable_mono_win64.exe",
+			"args": ["--path", "${workspaceFolder}"],
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"console": "internalConsole"
+		},
+		{
+			"name": "Open Godot editor",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "C:/Users/shrja/Desktop/Godot/Godot_v4.7.2-stable_mono_win64.exe",
+			"args": ["--path", "${workspaceFolder}", "--editor"],
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"console": "internalConsole"
+		}
+	]
+}

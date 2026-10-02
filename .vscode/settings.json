@@ -1,0 +1,9 @@
+{
+	"dotnet.defaultSolution": "WargamePrototype.sln",
+	"files.exclude": {
+		"**/*.uid": true,
+		"**/*.import": true,
+		".godot": true
+	},
+	"godotTools.editorPath.godot4": "c:\\Users\\shrja\\Desktop\\Godot\\Godot_v4.7.2-stable_mono_win64.exe"
+}
