@@ -19,11 +19,12 @@ public partial class Game : Node3D
 		new("Trooper", 6.0f),
 		new("Trooper", 6.0f),
 		new("Trooper", 6.0f),
-		new("Heavy", 5.0f),
+		new("Heavy", 5.0f), 
 		new("Scout", 8.0f),
 	};
 
 	[Export] public float MaxSlopeDeg = 50.0f;
+	[Export] public int DiceSeed = 0;
 
 	public Terrain Terrain;
 	public RTSCamera CameraRig;
@@ -41,6 +42,14 @@ public partial class Game : Node3D
 
 	public override void _Ready()
 	{
+		if (DiceSeed == 0)
+		{
+			Dice.Randomize();
+		}
+		else
+		{
+			Dice.SetSeed((ulong)DiceSeed);
+		}
 		GD.Randomize();
 		BuildEnvironment();
 
