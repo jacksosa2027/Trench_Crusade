@@ -15,6 +15,12 @@ public static class Dice
 		return _rng.RandiRange(1, 3);
 	}
 
+	// Inclusive of both min and max.
+	public static int Range(int min, int max)
+	{
+		return _rng.RandiRange(min, max);
+	}
+
 	public static void SetSeed(ulong seed)
 	{
 		_rng.Seed = seed;

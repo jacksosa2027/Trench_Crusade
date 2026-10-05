@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Godot;
 
 /// <summary>
@@ -16,11 +17,11 @@ public partial class Game : Node3D
 	private static readonly string[] TeamNames = { "Blue", "Red" };
 	private static readonly UnitProfile[] Army =
 	{
-		new("Trooper", 6.0f),
-		new("Trooper", 6.0f),
-		new("Trooper", 6.0f),
+		new("Paladin", 12.0f),
+		new("Trooper", 8.0f),
+		new("Lord of Tumors", 7.0f),
 		new("Heavy", 5.0f), 
-		new("Scout", 8.0f),
+		new("Scout", 10.0f),
 	};
 
 	[Export] public float MaxSlopeDeg = 50.0f;
@@ -32,13 +33,15 @@ public partial class Game : Node3D
 	public readonly List<Unit> Units = new();
 	public Unit Selected;
 	public int CurrentTeam = 0;
-	public int Turn = 1;
-
+	public int Turn = 0;   // StartNewTurn() in _Ready() makes this 1
+	private int _firstTeam = 0;   // team that moved first this turn
 	private GeodesicPathfinder.DistanceField _field;
 	private readonly ImmediateMesh _previewMesh = new();
 	private StandardMaterial3D _previewMat;
 	private Label _hud;
 	private string _hoverText = "";
+	public enum Phase {Initiative, Activation, Morale}
+	public Phase CurrentPhase;
 
 	public override void _Ready()
 	{
@@ -65,6 +68,7 @@ public partial class Game : Node3D
 		BuildPreview();
 		BuildHud();
 		SpawnArmies();
+		StartNewTurn();
 		UpdateHud();
 	}
 
@@ -199,15 +203,22 @@ public partial class Game : Node3D
 	{
 		if (AnyMoving())
 			return;
-		CurrentTeam = 1 - CurrentTeam;
-		if (CurrentTeam == 0)
-			Turn++;
-		foreach (var u in Units)
-		{
-			if (u.Team == CurrentTeam)
-				u.ResetMovement();
-		}
+		int next = 1 - CurrentTeam;
+		// Play coming back to the team that went first means both sides have moved.
+		if (next == _firstTeam)
+			StartNewTurn();
+		else
+			CurrentTeam = next;
 		Select(null);
+	}
+
+	private void StartNewTurn()
+	{
+		// The Morale Phase will go here, before the turn ends.
+		Turn++;
+		foreach (var u in Units)
+			u.ResetMovement();
+		RunInitiativePhase();
 	}
 
 	private List<Obstacle> ObstaclesFor(Unit mover)
@@ -231,6 +242,67 @@ public partial class Game : Node3D
 		return false;
 	}
 
+	/// <summary>
+	/// Returns the number of units on a team.
+	/// </summary>
+	public int CountUnits(int team)
+	{
+		int total = 0;
+		for (int i = 0; i < Units.Count; i++)
+		{
+			if (Units[i].Team == team)
+			{
+				total++;
+			}
+		}
+		return total;
+	}
+
+	private void RunInitiativePhase()
+	{
+		CurrentPhase = Phase.Initiative;
+		//index is the team number and element is the unit count
+		int[] UnitCount = new int[TeamNames.Length];
+		for (int i = 0; i < TeamNames.Length; i++)
+		{
+			UnitCount[i] = CountUnits(i);
+		}
+		GD.Print("Blue: " + UnitCount[0] + " Units, Red:" + UnitCount[1] + " Units");
+		int InitiativeTeam = -1;
+		//Same amount of units per team
+		if (UnitCount[0] == UnitCount[1])
+		{
+			// Each player rolls a dice and the highest wins; roll again on a tie.
+			int blueRoll;
+			int redRoll;
+			do
+			{
+				blueRoll = Dice.D6();
+				redRoll = Dice.D6();
+				GD.Print("Teams have equal unit count. Blue rolled " + blueRoll + ", Red rolled " + redRoll);
+			} while (blueRoll == redRoll);
+			InitiativeTeam = blueRoll > redRoll ? 0 : 1;
+			GD.Print(TeamNames[InitiativeTeam] + " has initiative");
+		}
+		else
+		{
+			if (UnitCount[0] > UnitCount[1])
+			{
+				InitiativeTeam = 1;
+				GD.Print("Blue has higher unit count. Red has initiative");
+			}
+			else
+			{
+				InitiativeTeam = 0;
+				GD.Print("Red has higher unit count. Blue has initiative");
+			}
+		}
+		//winning team goes first, eventually, winner choses who goes first
+		CurrentTeam = InitiativeTeam;
+		_firstTeam = InitiativeTeam;
+		CurrentPhase = Phase.Activation;
+	}
+
 	// --- Spawning ----------------------------------------------------------------
 
 	private void SpawnArmies()
@@ -244,7 +316,8 @@ public partial class Game : Node3D
 			float xMax = team == 0 ? -halfX + 10.0f : halfX - 1.0f;
 			int placed = 0;
 			int attempts = 0;
-			while (placed < Army.Length && attempts < 1000)
+			int targetCount = Dice.Range(6, 10);
+			while (placed < targetCount && attempts < 1000)
 			{
 				attempts++;
 				var p = new Vector3((float)GD.RandRange(xMin, xMax), 0.0f, (float)GD.RandRange(-halfZ * 0.6f, halfZ * 0.6f));
@@ -254,7 +327,7 @@ public partial class Game : Node3D
 				var wp = Terrain.GridToWorld(cell);
 				if (TooClose(wp, 0.63f * 2.0f + 0.5f))
 					continue;
-				var profile = Army[placed];
+				var profile = Army[Dice.Range(0, Army.Length - 1)];
 				var u = new Unit();
 				u.Team = team;
 				u.DisplayName = $"{TeamNames[team]} {profile.Name} {placed + 1}";
@@ -335,7 +408,7 @@ public partial class Game : Node3D
 
 	private void UpdateHud()
 	{
-		string t = $"Turn {Turn}  -  {TeamNames[CurrentTeam]} player's move\n";
+		string t = $"Turn {Turn}  - {CurrentPhase} Phase  {TeamNames[CurrentTeam]} player's move\n";
 		if (Selected != null)
 		{
 			if (Selected.Team == CurrentTeam)
