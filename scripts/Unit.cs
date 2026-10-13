@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 
 /// <summary>
@@ -9,13 +10,16 @@ public partial class Unit : Node3D
 	[Signal] public delegate void MoveFinishedEventHandler(Unit unit);
 
 	private static readonly Color[] TeamColors = { new(0.2f, 0.45f, 0.9f), new(0.85f, 0.25f, 0.2f) };
-
+	
 	[Export] public string DisplayName = "Trooper";
 	[Export] public int Team = 0;
 	[Export] public float MoveRange = 6.0f;      // inches per turn
 	[Export] public float BaseRadius = 0.63f;    // 32mm base
-	[Export] public float MoveSpeed = 6.0f;      // animation speed, inches per second
+	[Export] public float MoveSpeed = 10.0f;      // animation speed, inches per second
 
+	public enum ActionType {Move, Charge, Retreat, Dash, Shoot, Fight, Other};
+	public bool HasActivated;
+	public HashSet<ActionType> ActionRecord = new();
 	public Terrain Terrain;
 	public Vector2I GridCell = Vector2I.Zero;
 	public float MovementLeft = 0.0f;
@@ -25,28 +29,76 @@ public partial class Unit : Node3D
 	private int _pathIndex = 0;
 	private MeshInstance3D _ring;
 
+	/// <summary>
+	/// Resets the unit's movement to its max range and builds visuals.
+	/// </summary>
 	public override void _Ready()
 	{
 		MovementLeft = MoveRange;
 		BuildVisuals();
 	}
 
+	/// <summary>
+	/// Places the unit at the given cell.
+	/// </summary>
 	public void PlaceAtCell(Vector2I cell)
 	{
 		GridCell = cell;
 		GlobalPosition = Terrain.GridToWorld(cell);
 	}
 
+	/// <summary>
+	/// Resets the unit's movement to its max range.
+	/// </summary>
 	public void ResetMovement()
 	{
 		MovementLeft = MoveRange;
 	}
 
+	/// <summary>
+	/// Resets the activation flag and action record.
+	/// </summary>
+	public void ResetActivation()
+	{
+		HasActivated = false;
+		ActionRecord.Clear();
+	}
+
+	/// <summary>
+	/// Returns whether or not a unit has used an action.
+	/// </summary>
+	public bool HasUsed(ActionType a)
+	{
+		if (ActionRecord.Contains(a))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Returns whether or not unit has used a movement action.
+	/// </summary>
+	public bool HasUsedMovementAction()
+	{
+		if (ActionRecord.Contains(ActionType.Move) || ActionRecord.Contains(ActionType.Charge) || ActionRecord.Contains(ActionType.Retreat))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	/// <summary>
+	/// Sets the unit's ring mesh to be visible.
+	/// </summary>
 	public void SetSelected(bool value)
 	{
 		_ring.Visible = value;
 	}
 
+	/// <summary>
+	/// Sets the necessary states so unit can follow path to destination.
+	/// </summary>
 	public void FollowPath(Vector3[] points, float cost, Vector2I destination)
 	{
 		if (points.Length < 2)
@@ -58,6 +110,9 @@ public partial class Unit : Node3D
 		IsMoving = true;
 	}
 
+	/// <summary>
+	/// Iteratively calculates the path to reach the destination.
+	/// </summary>
 	public override void _Process(double delta)
 	{
 		if (!IsMoving)
@@ -96,6 +151,9 @@ public partial class Unit : Node3D
 		}
 	}
 
+	/// <summary>
+	/// Builds Visuals of the unit.
+	/// </summary>
 	private void BuildVisuals()
 	{
 		var teamMat = new StandardMaterial3D();

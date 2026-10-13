@@ -11,3 +11,8 @@
 
 # Secrets
 .env
+
+# Rules
+rules/
+
+unit_pngs/

@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using Godot;
 
@@ -33,8 +35,8 @@ public partial class Game : Node3D
 	public readonly List<Unit> Units = new();
 	public Unit Selected;
 	public int CurrentTeam = 0;
+	public Unit ActiveUnit;
 	public int Turn = 0;   // StartNewTurn() in _Ready() makes this 1
-	private int _firstTeam = 0;   // team that moved first this turn
 	private GeodesicPathfinder.DistanceField _field;
 	private readonly ImmediateMesh _previewMesh = new();
 	private StandardMaterial3D _previewMat;
@@ -93,7 +95,7 @@ public partial class Game : Node3D
 			{
 				case Key.Space:
 				case Key.Enter:
-					EndTurn();
+					EndActivation();
 					break;
 				case Key.Escape:
 					Select(null);
@@ -115,7 +117,7 @@ public partial class Game : Node3D
 
 	private void OnRightClick(Vector2 mouse)
 	{
-		if (Selected == null || Selected.Team != CurrentTeam || _field == null || AnyMoving())
+		if (Selected == null || !CanMove(Selected) || _field == null || AnyMoving())
 			return;
 		var hit = Raycast(mouse, 1);
 		if (hit.Count == 0)
@@ -123,7 +125,11 @@ public partial class Game : Node3D
 		var cell = Terrain.WorldToGrid(hit["position"].AsVector3());
 		if (cell == Selected.GridCell || !_field.IsReachable(cell))
 			return;
+		//Activation starts on first action
+		ActiveUnit = Selected;
+		ActiveUnit.ActionRecord.Add(Unit.ActionType.Move);
 		Selected.FollowPath(_field.PathTo(cell), _field.CostTo(cell), cell);
+		ActiveUnit.MovementLeft = 0;
 		_field = null;
 		Terrain.HideRange();
 		_previewMesh.ClearSurfaces();
@@ -199,26 +205,72 @@ public partial class Game : Node3D
 		UpdateHud();
 	}
 
-	private void EndTurn()
+	/// <summary>
+	/// Ends the activation phase.
+	/// </summary>
+	public void EndActivation()
 	{
 		if (AnyMoving())
+		{
 			return;
-		int next = 1 - CurrentTeam;
-		// Play coming back to the team that went first means both sides have moved.
-		if (next == _firstTeam)
-			StartNewTurn();
+		}
+		else if (ActiveUnit != null)
+		{
+			ActiveUnit.HasActivated = true;
+			ActiveUnit = null;
+		}
+		else if (Selected.Team == CurrentTeam && Selected.HasActivated == false)
+		{
+			Selected.HasActivated = true;
+			ActiveUnit = null;
+		}
 		else
-			CurrentTeam = next;
-		Select(null);
+		{
+			//Pressing space with nothing selected should not skip turn.
+			return;
+		}
+		//Decide who goes next
+		if (HasUnactivated(1- CurrentTeam))
+		{
+			CurrentTeam = 1 - CurrentTeam;
+		}
+		else if (HasUnactivated(CurrentTeam))
+		{
+			return;
+		}
+		else
+		{
+			StartNewTurn();
+			Select(null);
+		}
 	}
 
 	private void StartNewTurn()
 	{
+		ActiveUnit = null;
 		// The Morale Phase will go here, before the turn ends.
 		Turn++;
 		foreach (var u in Units)
+		{
 			u.ResetMovement();
+			u.ResetActivation();
+		}
 		RunInitiativePhase();
+	}
+
+	/// <summary>
+	/// Returns if any units on a team have yet to activate.
+	/// </summary>
+	public bool HasUnactivated(int team)
+	{
+		for (int i = 0; i < Units.Count; i++)
+		{
+			if (Units[i].Team == team && Units[i].HasActivated == false)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private List<Obstacle> ObstaclesFor(Unit mover)
@@ -232,12 +284,24 @@ public partial class Game : Node3D
 		return output;
 	}
 
+	/// <summary>
+	/// Returns if any units are moving.
+	/// </summary>
 	private bool AnyMoving()
 	{
 		foreach (var u in Units)
 		{
 			if (u.IsMoving)
 				return true;
+		}
+		return false;
+	}
+
+	public bool CanMove(Unit u)
+	{
+		if (u.Team == CurrentTeam && !u.HasActivated && (ActiveUnit == null || ActiveUnit == u) && !u.HasUsedMovementAction())
+		{
+			return true;
 		}
 		return false;
 	}
@@ -299,7 +363,6 @@ public partial class Game : Node3D
 		}
 		//winning team goes first, eventually, winner choses who goes first
 		CurrentTeam = InitiativeTeam;
-		_firstTeam = InitiativeTeam;
 		CurrentPhase = Phase.Activation;
 	}
 
