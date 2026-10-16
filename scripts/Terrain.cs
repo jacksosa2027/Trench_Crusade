@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Godot;
 
 /// <summary>
-/// Heightmap battlefield. Scale convention: 1 world unit = 1 inch (tabletop units).
+/// Heightmap battlefield. Scale convention: 1 world unit = 1 meter (life-size world).
 ///
 /// The terrain is a regular grid of height samples ("grid points"). The same grid is
 /// used for rendering, collision, and the geodesic pathfinder, so what you see is
@@ -12,9 +12,9 @@ public partial class Terrain : StaticBody3D
 {
 	public const float Unreachable = 1.0e4f;
 
-	[Export] public Vector2 BoardSize = new(100.0f, 100.0f);   // 60" x 44" = standard Strike Force board
-	[Export] public float CellSize = 0.5f;                      // spacing between grid points, in inches
-	[Export] public float HeightScale = 5.0f;                   // max hill height, in inches
+	[Export] public Vector2 BoardSize = new(50.0f, 50.0f);
+	[Export] public float CellSize = 0.5f;                      // spacing between grid points, in meters
+	[Export] public float HeightScale = 5.0f;                   // max hill height, in meters
 	[Export] public float NoiseFrequency = 0.045f;
 	[Export] public int NoiseSeed = 0;                          // 0 = random each run
 	[Export] public bool UseTerraces = true;                    // plateaus + steep risers (some impassable)
@@ -47,13 +47,13 @@ public partial class Terrain : StaticBody3D
 			float t = clamp(world_pos.y / height_scale, 0.0, 1.0);
 			vec3 col = mix(vec3(0.30, 0.34, 0.20), vec3(0.55, 0.49, 0.40), t);
 
-			// 1-inch grid.
+			// 1-meter grid.
 			vec2 gw = max(fwidth(world_pos.xz), vec2(1e-4));
 			vec2 g = abs(fract(world_pos.xz + 0.5) - 0.5) / gw;
 			float grid = 1.0 - clamp(min(g.x, g.y), 0.0, 1.0);
 			col = mix(col, col * 0.75, grid * 0.35);
 
-			// Contour lines every 0.5" of elevation, so height is readable from above.
+			// Contour lines every 0.5 m of elevation, so height is readable from above.
 			float hy = world_pos.y / 0.5;
 			float c = abs(fract(hy + 0.5) - 0.5) / max(fwidth(hy), 1e-4);
 			float contour = 1.0 - clamp(c, 0.0, 1.0);
@@ -148,7 +148,7 @@ public partial class Terrain : StaticBody3D
 
 	// --- Range overlay -----------------------------------------------------------
 
-	/// <summary>dist: one float per grid point (inches travelled), Unreachable where unreachable.</summary>
+	/// <summary>dist: one float per grid point (meters travelled), Unreachable where unreachable.</summary>
 	public void ShowRange(float[] dist, float maxRange)
 	{
 		byte[] bytes = MemoryMarshal.AsBytes<float>(dist).ToArray();

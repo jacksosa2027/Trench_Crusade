@@ -6,7 +6,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "build",
-			"program": "${config:godotTools.editorPath.godot4}",
+			"program": "${input:godotPath}",
 			"args": ["--path", "${workspaceFolder}"],
 			"cwd": "${workspaceFolder}",
 			"stopAtEntry": false,
@@ -17,11 +17,24 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "build",
-			"program": "${config:godotTools.editorPath.godot4}",
+			"program": "${input:godotPath}",
 			"args": ["--path", "${workspaceFolder}", "--editor"],
 			"cwd": "${workspaceFolder}",
 			"stopAtEntry": false,
 			"console": "internalConsole"
+		}
+	],
+	"inputs": [
+		{
+			// Resolved per machine by find-godot.ps1 (needs the "Tasks Shell Input" extension).
+			"id": "godotPath",
+			"type": "command",
+			"command": "shellCommand.execute",
+			"args": {
+				"command": "powershell -NoProfile -ExecutionPolicy Bypass -File .vscode/find-godot.ps1",
+				"cwd": "${workspaceFolder}",
+				"useFirstResult": true
+			}
 		}
 	]
 }

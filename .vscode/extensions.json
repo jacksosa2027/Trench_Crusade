@@ -1,6 +1,7 @@
 {
 	"recommendations": [
 		"ms-dotnettools.csharp",
-		"geequlim.godot-tools"
+		"geequlim.godot-tools",
+		"augustocdias.tasks-shell-input"
 	]
 }

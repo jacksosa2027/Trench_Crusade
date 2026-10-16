@@ -9,7 +9,7 @@ using Godot;
 /// </summary>
 public partial class RTSCamera : Node3D
 {
-	[Export] public float PanSpeed = 30.0f;           // inches per second at default zoom
+	[Export] public float PanSpeed = 30.0f;           // meters per second at default zoom
 	[Export] public float RotateSpeed = 1.8f;         // radians per second (Q/E)
 	[Export] public float OrbitSensitivity = 0.005f;
 	[Export] public float ZoomMin = 6.0f;

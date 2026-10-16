@@ -26,7 +26,7 @@ public partial class Game : Node3D
 		new("Scout", 10.0f),
 	};
 
-	[Export] public float MaxSlopeDeg = 50.0f;
+	[Export] public float MaxSlopeDeg = 50.0f; //Max slope degree thata unit pathfinder can traverse.
 	[Export] public int DiceSeed = 0;
 
 	public Terrain Terrain;
@@ -37,13 +37,14 @@ public partial class Game : Node3D
 	public int CurrentTeam = 0;
 	public Unit ActiveUnit;
 	public int Turn = 0;   // StartNewTurn() in _Ready() makes this 1
+	public enum Phase {Initiative, Activation, Morale}
+	public Phase CurrentPhase;
+
 	private GeodesicPathfinder.DistanceField _field;
 	private readonly ImmediateMesh _previewMesh = new();
 	private StandardMaterial3D _previewMat;
 	private Label _hud;
 	private string _hoverText = "";
-	public enum Phase {Initiative, Activation, Morale}
-	public Phase CurrentPhase;
 
 	public override void _Ready()
 	{
@@ -96,6 +97,10 @@ public partial class Game : Node3D
 				case Key.Space:
 				case Key.Enter:
 					EndActivation();
+					if (!AnyMoving())
+					{
+						Select(Selected);
+					}
 					break;
 				case Key.Escape:
 					Select(null);
@@ -157,11 +162,11 @@ public partial class Game : Node3D
 		if (_field.IsReachable(cell) && cell != Selected.GridCell)
 		{
 			DrawPath(_field.PathTo(cell));
-			_hoverText = $"Path: {_field.CostTo(cell):0.0}\"  (straight line {straight:0.0}\")";
+			_hoverText = $"Path: {_field.CostTo(cell):0.0} m  (straight line {straight:0.0} m)";
 		}
 		else
 		{
-			_hoverText = $"Out of range  (straight line {straight:0.0}\")";
+			_hoverText = $"Out of range  (straight line {straight:0.0} m)";
 		}
 		UpdateHud();
 	}
@@ -219,7 +224,7 @@ public partial class Game : Node3D
 			ActiveUnit.HasActivated = true;
 			ActiveUnit = null;
 		}
-		else if (Selected.Team == CurrentTeam && Selected.HasActivated == false)
+		else if (Selected != null && Selected.Team == CurrentTeam && Selected.HasActivated == false)
 		{
 			Selected.HasActivated = true;
 			ActiveUnit = null;
@@ -374,7 +379,7 @@ public partial class Game : Node3D
 		float halfZ = Terrain.BoardSize.Y * 0.5f;
 		for (int team = 0; team < 2; team++)
 		{
-			// 9" deep deployment zones on the short edges.
+			// 9 m deep deployment zones on the short edges.
 			float xMin = team == 0 ? -halfX + 1.0f : halfX - 10.0f;
 			float xMax = team == 0 ? -halfX + 10.0f : halfX - 1.0f;
 			int placed = 0;
@@ -475,9 +480,9 @@ public partial class Game : Node3D
 		if (Selected != null)
 		{
 			if (Selected.Team == CurrentTeam)
-				t += $"{Selected.DisplayName}   Move left: {Selected.MovementLeft:0.0}\" / {Selected.MoveRange:0.0}\"\n";
+				t += $"{Selected.DisplayName}   Move left: {Selected.MovementLeft:0.0} m / {Selected.MoveRange:0.0} m\n";
 			else
-				t += $"{Selected.DisplayName} (enemy)   Threat range: {Selected.MoveRange:0.0}\"\n";
+				t += $"{Selected.DisplayName} (enemy)   Threat range: {Selected.MoveRange:0.0} m\n";
 		}
 		t += _hoverText;
 		_hud.Text = t;

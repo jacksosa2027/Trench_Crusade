@@ -13,9 +13,9 @@ public partial class Unit : Node3D
 	
 	[Export] public string DisplayName = "Trooper";
 	[Export] public int Team = 0;
-	[Export] public float MoveRange = 6.0f;      // inches per turn
-	[Export] public float BaseRadius = 0.63f;    // 32mm base
-	[Export] public float MoveSpeed = 10.0f;      // animation speed, inches per second
+	[Export] public float MoveRange = 6.0f;      // meters per turn
+	[Export] public float BaseRadius = 0.63f;    // meters
+	[Export] public float MoveSpeed = 10.0f;      // animation speed, meters per second
 
 	public enum ActionType {Move, Charge, Retreat, Dash, Shoot, Fight, Other};
 	public bool HasActivated;
@@ -175,10 +175,10 @@ public partial class Unit : Node3D
 		var body = new MeshInstance3D();
 		var cap = new CapsuleMesh();
 		cap.Radius = 0.35f;
-		cap.Height = 1.5f;
+		cap.Height = 1.8f;   // life-size figure
 		body.Mesh = cap;
 		body.MaterialOverride = teamMat;
-		body.Position = new Vector3(0.0f, 0.15f + 0.75f, 0.0f);
+		body.Position = new Vector3(0.0f, 0.15f + 0.9f, 0.0f);
 		AddChild(body);
 
 		// Small "visor" so you can see which way the model faces.
@@ -187,7 +187,7 @@ public partial class Unit : Node3D
 		box.Size = new Vector3(0.3f, 0.12f, 0.15f);
 		visor.Mesh = box;
 		visor.MaterialOverride = baseMat;
-		visor.Position = new Vector3(0.0f, 1.35f, 0.32f);
+		visor.Position = new Vector3(0.0f, 1.6f, 0.32f);
 		AddChild(visor);
 
 		_ring = new MeshInstance3D();
@@ -211,9 +211,9 @@ public partial class Unit : Node3D
 		var cs = new CollisionShape3D();
 		var shape = new CylinderShape3D();
 		shape.Radius = BaseRadius;
-		shape.Height = 1.8f;
+		shape.Height = 1.95f;
 		cs.Shape = shape;
-		cs.Position = new Vector3(0.0f, 0.9f, 0.0f);
+		cs.Position = new Vector3(0.0f, 0.975f, 0.0f);
 		pick.AddChild(cs);
 		AddChild(pick);
 	}
