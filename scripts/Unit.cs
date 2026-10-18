@@ -10,6 +10,7 @@ public partial class Unit : Node3D
 	[Signal] public delegate void MoveFinishedEventHandler(Unit unit);
 
 	private static readonly Color[] TeamColors = { new(0.2f, 0.45f, 0.9f), new(0.85f, 0.25f, 0.2f) };
+	private static readonly string[] TeamModels = {"res://models/paladin.glb", "res://models/lord_of_tumors.glb"};
 	
 	[Export] public string DisplayName = "Trooper";
 	[Export] public int Team = 0;
@@ -168,27 +169,16 @@ public partial class Unit : Node3D
 		cyl.BottomRadius = BaseRadius;
 		cyl.Height = 0.15f;
 		baseMesh.Mesh = cyl;
-		baseMesh.MaterialOverride = baseMat;
+		baseMesh.MaterialOverride = teamMat;
 		baseMesh.Position = new Vector3(0.0f, 0.075f, 0.0f);
 		AddChild(baseMesh);
 
-		var body = new MeshInstance3D();
-		var cap = new CapsuleMesh();
-		cap.Radius = 0.35f;
-		cap.Height = 1.8f;   // life-size figure
-		body.Mesh = cap;
-		body.MaterialOverride = teamMat;
-		body.Position = new Vector3(0.0f, 0.15f + 0.9f, 0.0f);
-		AddChild(body);
-
-		// Small "visor" so you can see which way the model faces.
-		var visor = new MeshInstance3D();
-		var box = new BoxMesh();
-		box.Size = new Vector3(0.3f, 0.12f, 0.15f);
-		visor.Mesh = box;
-		visor.MaterialOverride = baseMat;
-		visor.Position = new Vector3(0.0f, 1.6f, 0.32f);
-		AddChild(visor);
+		//new model code:
+		var scene = GD.Load<PackedScene>(TeamModels[Team % TeamModels.Length]);
+		var model = scene.Instantiate<Node3D>();
+		model.Scale = Vector3.One * 0.66f; //CHANGE THE SCALE LATER
+		model.Position = new Vector3(0.0f, 0.15f, 0.0f); //stand on top of the base
+		AddChild(model);
 
 		_ring = new MeshInstance3D();
 		var torus = new TorusMesh();

@@ -16,7 +16,7 @@ public partial class Terrain : StaticBody3D
 	[Export] public float CellSize = 0.5f;                      // spacing between grid points, in meters
 	[Export] public float HeightScale = 5.0f;                   // max hill height, in meters
 	[Export] public float NoiseFrequency = 0.045f;
-	[Export] public int NoiseSeed = 0;                          // 0 = random each run
+	[Export] public int NoiseSeed = 1;                          // same map every run; 0 = random each run
 	[Export] public bool UseTerraces = true;                    // plateaus + steep risers (some impassable)
 	[Export] public float TerraceHeight = 1.5f;
 
